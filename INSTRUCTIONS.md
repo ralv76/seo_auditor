@@ -45,7 +45,7 @@
 
 ```json
 {
-  "url": "https://4info.ru/",
+  "url": "https://example.ru/",
   "status": 200,
   "html": "<!DOCTYPE html>...",
   "headers": {"content-type": "text/html"},
