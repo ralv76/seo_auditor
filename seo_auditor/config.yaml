@@ -1,0 +1,50 @@
+crawl:
+  max_pages: 0           # 0 = все URL из sitemap; иначе число
+  max_depth: 3           # глубина BFS-ссылок (доп. к sitemap)
+  strategy: sitemap_first  # sitemap_first | bfs
+  sitemap_html_only: true  # исключить картинки/файлы из sitemap
+  timeout: 15            # таймаут запроса (сек)
+  delay: 0.3             # задержка между запросами (сек)
+  user_agent: "SEO-Auditor/1.0"
+
+llm:
+  url: "https://routerai.ru/api/v1"
+  model: "openai/gpt-5.4-nano"
+  api_key: "INSERT_YOUR_API_KEY"            # или задать через env SEO_LLM_API_KEY
+  batch_size: 40                # страниц в одном LLM-запросе (25–50)
+  max_text_chars_per_page: 600    # символов текста на страницу
+  max_h2_per_page: 4
+  top_tasks_count: 7              # TOP задач в заключении
+  temperature: 0.2
+  request_timeout: 120            # таймаут одного LLM-запроса (сек)
+
+analysis:
+  perf_max_pages: 40              # выборка для perf_checker при полном обходе
+  max_broken_links_check: 200       # лимит проверки битых ссылок
+  broken_link_timeout: 5            # таймаут HEAD для битых ссылок (сек)
+  min_word_count: 300            # порог "мало текста"
+  min_description_len: 50        # минимум символов description
+  max_description_len: 160
+  min_title_len: 30
+  max_title_len: 70
+  max_h1_per_page: 1
+  ttfb_warn_ms: 500              # порог медленного TTFB
+  page_size_warn_kb: 1500        # порог большого размера страницы
+  title_h1_min_similarity: 30    # мин. сходство title↔h1 (%)
+  min_internal_outgoing: 3       # мин. исходящих внутренних ссылок
+  brand_required_in_title: false # true = требовать бренд в title
+  brand_name: ""                 # бренд для проверки title (пусто = домен)
+  description_cta_words: ["заказать", "узнать", "рассчитать", "получить", "позвон"]
+  max_long_paragraphs: 3         # порог длинных абзацев на странице
+  min_faq_mentions: 2            # минимум сигналов FAQ/вопросов для статей
+  generic_anchor_warn_pct: 25    # доля общих anchor-текстов
+  top_keywords: 20
+  stopwords: []
+  plugins:
+    - scripts/keywords.py
+
+output:
+  save_html_pages: true          # сохранять HTML страниц локально
+  report_formats: ["md", "html"]   # форматы отчёта
+  report_html_mode: jinja        # jinja | legacy
+  top_changes_count: 20          # TOP-N изменений в шапке отчёта

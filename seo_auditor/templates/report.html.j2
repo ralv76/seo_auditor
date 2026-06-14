@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SEO-аудит {{ domain }}</title>
+<style>
+  :root {
+    --primary: #4a6cf7; --critical: #dc3545; --warning: #e6a700; --info: #0d6efd;
+    --ok: #198754; --bg: #f4f6fb; --card: #fff; --text: #1a1a1a; --muted: #666;
+    --llm-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  }
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+         margin: 0; color: var(--text); background: var(--bg); line-height: 1.55; }
+  .layout { display: flex; max-width: 1280px; margin: 0 auto; }
+  .sidebar { width: 220px; flex-shrink: 0; position: sticky; top: 0; height: 100vh;
+             overflow-y: auto; padding: 16px 10px; background: var(--card);
+             border-right: 1px solid #e0e0e0; }
+  .sidebar ul { list-style: none; padding: 0; margin: 0; }
+  .sidebar a { display: block; padding: 4px 8px; font-size: 0.85em; color: #333;
+               text-decoration: none; border-radius: 4px; }
+  .sidebar a:hover { background: #eef1ff; color: var(--primary); }
+  main { flex: 1; padding: 20px 28px 40px; min-width: 0; }
+  .header { background: var(--card); border-radius: 8px; padding: 20px 24px; margin-bottom: 16px;
+            box-shadow: 0 1px 4px rgba(0,0,0,.06); }
+  .header h1 { margin: 0 0 10px; font-size: 1.5em; }
+  .meta { font-size: 0.9em; color: var(--muted); }
+  .meta strong { color: var(--text); }
+  .scores-row { display: flex; flex-wrap: wrap; gap: 12px; margin: 16px 0; }
+  .score-pill { padding: 10px 16px; border-radius: 8px; background: #eef1ff; min-width: 120px; }
+  .score-pill.llm { background: var(--llm-bg); color: #fff; }
+  .score-pill.pro { background: #f6f8fa; border: 1px solid #e5e7eb; }
+  .score-pill .val { font-size: 1.6em; font-weight: 700; line-height: 1.1; }
+  .score-pill .lbl { font-size: 0.75em; opacity: 0.9; margin-top: 2px; }
+  section { background: var(--card); border-radius: 8px; padding: 18px 22px; margin-bottom: 16px;
+            box-shadow: 0 1px 4px rgba(0,0,0,.06); }
+  section h2 { margin: 0 0 14px; font-size: 1.15em; border-bottom: 1px solid #e8e8e8; padding-bottom: 8px; }
+  section.errors { border-left: 4px solid var(--critical); }
+  section.warnings { border-left: 4px solid var(--warning); }
+  section.llm-highlight { border: 2px solid #667eea; background: #fafbff; }
+  .error-item { margin-bottom: 10px; border: 1px solid #eee; border-radius: 6px; overflow: hidden; }
+  .error-head { display: flex; align-items: center; gap: 10px; padding: 10px 14px;
+                background: #fafafa; cursor: default; }
+  .error-head .msg { flex: 1; font-size: 0.92em; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.75em; font-weight: 600; }
+  .badge-critical { background: #fde8ea; color: var(--critical); }
+  .badge-warning { background: #fff8e1; color: #9a7000; }
+  .badge-info { background: #e7f1ff; color: var(--info); }
+  .badge-count { background: #eee; color: #555; }
+  details { margin: 8px 0; border: 1px solid #e8e8e8; border-radius: 6px; }
+  details summary { padding: 10px 14px; cursor: pointer; font-weight: 500; font-size: 0.92em;
+                    background: #fafafa; list-style-position: inside; }
+  details[open] summary { border-bottom: 1px solid #eee; }
+  details .inner { padding: 12px 14px; font-size: 0.88em; }
+  details.url-list summary { font-weight: 400; color: var(--muted); padding: 6px 12px; font-size: 0.85em; }
+  .url-chips code { display: inline-block; margin: 2px 4px 2px 0; font-size: 0.82em; }
+  .table-wrap { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: 0.85em; }
+  th { background: var(--primary); color: #fff; padding: 7px 9px; text-align: left; }
+  td { padding: 6px 9px; border-bottom: 1px solid #eee; }
+  code { background: #f0f0f0; padding: 1px 4px; border-radius: 3px; font-size: 0.88em; }
+  .llm-content { font-size: 0.92em; }
+  .empty-ok { color: var(--ok); padding: 8px 0; }
+  .menu-toggle { display: none; }
+  .executive { border: 2px solid #667eea; background: linear-gradient(135deg, #f8f9ff 0%, #f3eeff 100%);
+               border-radius: 10px; padding: 20px 24px; margin-bottom: 16px; }
+  .executive h2 { margin: 0 0 12px; font-size: 1.15em; color: #4a3d8f; border: none; }
+  .executive .conclusion { font-size: 1.02em; line-height: 1.6; margin-bottom: 16px; }
+  .task-list { list-style: none; padding: 0; margin: 0; }
+  .task-list li { padding: 10px 12px; margin-bottom: 8px; background: #fff; border-radius: 6px;
+                  border-left: 4px solid #667eea; font-size: 0.92em; }
+  .task-list .prio { font-weight: 700; color: #667eea; margin-right: 8px; }
+  .pro-summary { border: 1px solid #d8dee9; background: #fff; }
+  .risk-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
+  .risk-card { border: 1px solid #eceff4; border-radius: 8px; padding: 10px 12px; background: #fafbfc; }
+  .risk-card .name { font-weight: 650; font-size: 0.9em; margin-bottom: 4px; }
+  .risk-card .counts { color: var(--muted); font-size: 0.82em; }
+  .top20 { border: 2px solid #e6a700; background: linear-gradient(135deg, #fffbf0 0%, #fff8e6 100%);
+           border-radius: 10px; padding: 20px 24px; margin-bottom: 16px; }
+  .top20 h2 { margin: 0 0 12px; font-size: 1.15em; color: #8a6500; border: none; }
+  .top20 .intro { font-size: 0.98em; line-height: 1.6; margin-bottom: 16px; color: #444; }
+  .change-item { margin-bottom: 14px; padding: 12px 14px; background: #fff; border-radius: 6px;
+                 border-left: 4px solid #e6a700; }
+  .change-item.critical { border-left-color: var(--critical); }
+  .change-item.llm { border-left-color: #667eea; }
+  .change-item .change-head { font-weight: 600; font-size: 0.93em; margin-bottom: 6px; }
+  .change-item .url-list-inline { font-size: 0.85em; margin: 0; padding-left: 18px; }
+  .change-item .url-list-inline li { margin: 2px 0; }
+  .footer { text-align: center; color: var(--muted); font-size: 0.82em; padding: 20px; }
+  @media (max-width: 900px) {
+    .layout { flex-direction: column; }
+    .sidebar { display: none; width: 100%; height: auto; position: static; }
+    .sidebar.open { display: block; }
+    .menu-toggle { display: block; margin-bottom: 10px; padding: 8px 14px;
+                   background: var(--primary); color: #fff; border: none; border-radius: 4px; }
+  }
+  @media print { .sidebar, .menu-toggle { display: none !important; } }
+</style>
+</head>
+<body>
+<button class="menu-toggle" onclick="document.querySelector('.sidebar').classList.toggle('open')">☰ Меню</button>
+<div class="layout">
+<nav class="sidebar">
+  <ul>
+    <li><a href="#executive">Заключение LLM</a></li>
+    <li><a href="#pro-summary">Проф. сводка</a></li>
+    <li><a href="#top20">TOP-20 изменений</a></li>
+    <li><a href="#errors">Ошибки</a></li>
+    <li><a href="#llm">Детали LLM</a></li>
+    <li><a href="#success">Успешные проверки</a></li>
+    <li><a href="#details">Детализация</a></li>
+    <li><a href="#recommendations">Рекомендации</a></li>
+  </ul>
+</nav>
+<main>
+
+<div class="header">
+  <h1>SEO-аудит {{ domain }}</h1>
+  <div class="meta">
+    {{ today }} · <a href="{{ base_url }}">{{ base_url }}</a> ·
+    <strong>{{ agg.summary.pages_total }}</strong> стр. (sitemap: {{ agg.robots_sitemap.sitemap_urls_count }})
+  </div>
+  <div class="scores-row">
+    <div class="score-pill"><div class="val">{{ agg.score.value }}</div><div class="lbl">Техн. SEO /100</div></div>
+    {% if llm_scores.content_score %}
+    <div class="score-pill llm"><div class="val">{{ llm_scores.content_score }}</div><div class="lbl">Контент LLM /100</div></div>
+    <div class="score-pill llm"><div class="val">{{ llm_scores.structure_score or '—' }}</div><div class="lbl">Структура /10</div></div>
+    <div class="score-pill llm"><div class="val">{{ llm_scores.text_quality_score or '—' }}</div><div class="lbl">Тексты /10</div></div>
+    {% else %}
+    <div class="score-pill"><div class="val">—</div><div class="lbl">LLM не запускался</div></div>
+    {% endif %}
+    <div class="score-pill"><div class="val" style="color:var(--critical)">{{ agg.issues_summary.critical }}</div><div class="lbl">Критических</div></div>
+    <div class="score-pill"><div class="val" style="color:var(--warning)">{{ agg.issues_summary.warning }}</div><div class="lbl">Важных</div></div>
+  </div>
+</div>
+
+{# === ЗАКЛЮЧЕНИЕ LLM (вверху) === #}
+{% if synthesis.conclusion or executive or llm_scores.content_score %}
+<section id="executive" class="executive">
+  <h2>Заключение LLM — как улучшить материал</h2>
+  <div class="scores-row">
+    {% if llm_scores.content_score %}
+    <div class="score-pill llm"><div class="val">{{ llm_scores.content_score }}</div><div class="lbl">Контент /100</div></div>
+    <div class="score-pill llm"><div class="val">{{ llm_scores.structure_score or '—' }}</div><div class="lbl">Структура /10 · {{ llm_scores.structure_batches or 1 }} пак.</div></div>
+    <div class="score-pill llm"><div class="val">{{ llm_scores.text_quality_score or '—' }}</div><div class="lbl">Тексты /10 · {{ llm_scores.text_batches or 1 }} пак.</div></div>
+    {% endif %}
+  </div>
+  {% if synthesis.conclusion %}
+  <div class="conclusion">{{ synthesis.conclusion }}</div>
+  {% elif executive_html %}
+  <div class="conclusion llm-content">{{ executive_html|safe }}</div>
+  {% else %}
+  <div class="conclusion" style="color:var(--muted)">Итоговое заключение и TOP задачи — перезапустите LLM с <code>--from-audit ... --llm-only</code></div>
+  {% endif %}
+  {% if synthesis.top_tasks %}
+  <h3 style="margin:16px 0 8px;font-size:0.95em;">TOP задачи</h3>
+  <ol class="task-list">
+    {% for t in synthesis.top_tasks %}
+    <li><span class="prio">{{ t.priority }}.</span> {{ t.task }}
+      {% if t.urls %}<br>{% for u in t.urls[:5] %}<code>{{ u }}</code> {% endfor %}{% endif %}
+    </li>
+    {% endfor %}
+  </ol>
+  {% endif %}
+</section>
+{% endif %}
+
+{# === ПРОФЕССИОНАЛЬНАЯ СВОДКА === #}
+{% if professional_scores %}
+<section id="pro-summary" class="pro-summary">
+  <h2>Профессиональная сводка качества</h2>
+  <div class="scores-row">
+    <div class="score-pill pro"><div class="val">{{ professional_scores.overall or '—' }}</div><div class="lbl">Общий профиль /100</div></div>
+    <div class="score-pill pro"><div class="val">{{ professional_scores.technical or '—' }}</div><div class="lbl">Техническое SEO</div></div>
+    <div class="score-pill pro"><div class="val">{{ professional_scores.serp or '—' }}</div><div class="lbl">SERP / meta / schema</div></div>
+    <div class="score-pill pro"><div class="val">{{ professional_scores.content or '—' }}</div><div class="lbl">Контент</div></div>
+    <div class="score-pill pro"><div class="val">{{ professional_scores.commercial or '—' }}</div><div class="lbl">Коммерция / доверие / CTA</div></div>
+    <div class="score-pill pro"><div class="val">{{ professional_scores.linking or '—' }}</div><div class="lbl">Перелинковка</div></div>
+  </div>
+  {% if issue_category_rows %}
+  <h3 style="margin:14px 0 8px;font-size:0.95em;">Зоны риска</h3>
+  <div class="risk-grid">
+    {% for r in issue_category_rows[:8] %}
+    <div class="risk-card">
+      <div class="name">{{ r.label }}</div>
+      <div class="counts">🔴 {{ r.critical }} · 🟡 {{ r.warning }} · 🔵 {{ r.info }}</div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+</section>
+{% endif %}
+
+{# === TOP-20 ИЗМЕНЕНИЙ === #}
+{% if top_changes.changes %}
+<section id="top20" class="top20">
+  <h2>TOP-{{ top_changes.limit }} необходимых изменений</h2>
+  {% if top_changes.summary %}
+  <div class="intro">{{ top_changes.summary }}</div>
+  {% endif %}
+  {% for c in top_changes.changes %}
+  <div class="change-item {{ c.severity }}">
+    <div class="change-head">{{ c.priority }}. {{ c.task }}</div>
+    {% if c.urls %}
+    <details {% if c.urls|length <= 5 %}open{% endif %}>
+      <summary>Страницы ({{ c.urls|length }})</summary>
+      <ul class="url-list-inline">
+        {% for u in c.urls[:20] %}
+        <li><code>{{ u }}</code></li>
+        {% endfor %}
+        {% if c.urls|length > 20 %}
+        <li><em>…ещё {{ c.urls|length - 20 }} стр.</em></li>
+        {% endif %}
+      </ul>
+    </details>
+    {% else %}
+    <div style="font-size:0.85em;color:var(--muted)">Сайт целиком / внешние URL</div>
+    {% endif %}
+  </div>
+  {% endfor %}
+</section>
+{% endif %}
+
+{# === ОШИБКИ (всегда видны) === #}
+<section id="errors" class="errors">
+  <h2>Критические и важные ошибки</h2>
+  {% if errors_visible %}
+    {% for err in errors_visible %}
+    <div class="error-item">
+      <div class="error-head">
+        <span class="badge badge-{{ err.severity }}">{{ err.code }}</span>
+        <span class="msg">{{ err.message }}</span>
+        <span class="badge badge-count">{{ err.count }} стр.</span>
+      </div>
+      {% if err.urls %}
+      <details class="url-list">
+        <summary>Страницы ({{ err.count }})</summary>
+        <div class="inner url-chips">
+          {% for u in err.urls %}<code>{{ u }}</code>{% endfor %}
+        </div>
+      </details>
+      {% endif %}
+    </div>
+    {% endfor %}
+  {% else %}
+    <p class="empty-ok">✓ Критических и важных ошибок не обнаружено</p>
+  {% endif %}
+</section>
+
+{# === LLM (выделено) === #}
+<section id="llm" class="llm-highlight">
+  <h2>Детали LLM (пакетный анализ)</h2>
+  {% if llm_scores.content_score is not none %}
+  <div class="scores-row">
+    <div class="score-pill llm"><div class="val">{{ llm_scores.structure_score }}/10</div><div class="lbl">Структура meta↔H1↔H2</div></div>
+    <div class="score-pill llm"><div class="val">{{ llm_scores.title_h1_score or '—' }}/10</div><div class="lbl">Title ↔ H1</div></div>
+    <div class="score-pill llm"><div class="val">{{ llm_scores.text_quality_score }}/10</div><div class="lbl">Качество текстов</div></div>
+    <div class="score-pill llm"><div class="val">{{ llm_scores.readability_avg or '—' }}/5</div><div class="lbl">Читаемость</div></div>
+    <div class="score-pill llm"><div class="val">{{ llm_scores.seo_potential_avg or '—' }}/5</div><div class="lbl">SEO-потенциал</div></div>
+  </div>
+  <details open>
+    <summary>Структура — детали</summary>
+    <div class="inner llm-content">{{ llm_html.logic | safe }}</div>
+  </details>
+  <details>
+    <summary>Тексты — детали</summary>
+    <div class="inner llm-content">{{ llm_html.text_quality | safe }}</div>
+  </details>
+  {% else %}
+  <p><em>LLM-анализ не выполнялся. Запустите без флага <code>--no-llm</code>.</em></p>
+  {% endif %}
+</section>
+
+{# === УСПЕШНОСТЬ (аккордеон) === #}
+<section id="success">
+  <details>
+    <summary>Успешные проверки и сводка ({{ summary_rows|length }} параметров)</summary>
+    <div class="inner">
+      <div class="table-wrap"><table>
+        <thead><tr><th>Параметр</th><th>Статус</th><th>Детали</th></tr></thead>
+        <tbody>{% for row in summary_rows %}
+        <tr><td>{{ row.label }}</td><td>{{ row.status }}</td><td>{{ row.detail }}</td></tr>
+        {% endfor %}</tbody>
+      </table></div>
+    </div>
+  </details>
+  {% if infos_collapsed %}
+  <details>
+    <summary>Рекомендации (info) — {{ infos_collapsed|length }} типов</summary>
+    <div class="inner">
+      {% for err in infos_collapsed %}
+      <details class="url-list">
+        <summary><span class="badge badge-info">{{ err.code }}</span> {{ err.message }} ({{ err.count }})</summary>
+        <div class="inner url-chips">{% for u in err.urls %}<code>{{ u }}</code>{% endfor %}</div>
+      </details>
+      {% endfor %}
+    </div>
+  </details>
+  {% endif %}
+</section>
+
+{# === ДЕТАЛИЗАЦИЯ (аккордеоны) === #}
+<section id="details">
+  <h2>Детализация</h2>
+  <details>
+    <summary>Мета-теги ({{ agg.pages|length }} стр.)</summary>
+    <div class="inner table-wrap"><table>
+      <thead><tr><th>URL</th><th>Title</th><th>Desc</th><th>H1</th></tr></thead>
+      <tbody>{% for p in agg.pages %}
+      <tr><td><code>{{ url_short(p.url) }}</code></td>
+          <td>{{ p.title[:45] }}{% if p.title|length > 45 %}…{% endif %}</td>
+          <td>{{ p.description[:35] }}…</td>
+          <td>{{ p.h1[:40] if p.h1 else '—' }}</td></tr>
+      {% endfor %}</tbody>
+    </table></div>
+  </details>
+  <details>
+    <summary>robots / sitemap</summary>
+    <div class="inner">
+      {% set rs = agg.robots_sitemap %}
+      <p>robots.txt: {% if rs.robots_txt_found %}✓{% else %}✗{% endif %} ·
+         sitemap: {{ rs.sitemap_urls_count }} URL ·
+         обойдено: {{ agg.summary.pages_total }}</p>
+      {% if rs.in_sitemap_not_crawled %}
+      <p><strong>Не обойдено из sitemap:</strong> {{ rs.in_sitemap_not_crawled|length }} URL (первые 10)</p>
+      <div class="url-chips">{% for u in rs.in_sitemap_not_crawled[:10] %}<code>{{ url_short(u) }}</code>{% endfor %}</div>
+      {% endif %}
+    </div>
+  </details>
+  <details>
+    <summary>Битые ссылки ({{ agg.links.broken_links_count }})</summary>
+    <div class="inner">{% if agg.links.broken_links %}
+      <table><thead><tr><th>URL</th><th>Статус</th></tr></thead>
+      <tbody>{% for url, st in agg.links.broken_links.items() %}<tr><td>{{ url }}</td><td>{{ st }}</td></tr>{% endfor %}</tbody></table>
+    {% else %}<p class="empty-ok">Нет битых ссылок</p>{% endif %}</div>
+  </details>
+  <details>
+    <summary>Производительность</summary>
+    <div class="inner">
+      {% if perf_summary.pages_measured %}
+      TTFB: {{ perf_summary.avg_ttfb_ms }} мс · Размер: {{ perf_summary.avg_size_kb }} КБ ·
+      Медленных: {{ perf_summary.pages_slow_ttfb or 0 }} · Больших: {{ perf_summary.pages_large or 0 }}
+      {% else %}—{% endif %}
+    </div>
+  </details>
+  {% if keywords %}
+  <details>
+    <summary>Ключевые слова (покрытие title: {{ keywords.meta_coverage_score }}%)</summary>
+    <div class="inner table-wrap"><table>
+      <thead><tr><th>Слово</th><th>Частота</th></tr></thead>
+      <tbody>{% for t in keywords.top_keywords[:15] %}<tr><td>{{ t.word }}</td><td>{{ t.count }}</td></tr>{% endfor %}</tbody>
+    </table></div>
+  </details>
+  {% endif %}
+</section>
+
+<section id="recommendations">
+  <h2>Сводка рекомендаций по типам</h2>
+  {% for sev, label, css in [('critical','Критические','badge-critical'),('warning','Важные','badge-warning'),('info','Инфо','badge-info')] %}
+  {% set items = recommendations.get(sev, {}) %}
+  {% if items %}
+  <details {% if sev == 'critical' %}open{% endif %}>
+    <summary>{{ label }} ({{ items|length }})</summary>
+    <div class="inner">
+      {% for code, data in items.items() %}
+      <details class="url-list"><summary>{{ code }}: {{ data.message }} ({{ data.urls|length }})</summary>
+        <div class="inner url-chips">{% for u in data.urls %}<code>{{ u }}</code>{% endfor %}</div>
+      </details>
+      {% endfor %}
+    </div>
+  </details>
+  {% endif %}
+  {% endfor %}
+</section>
+
+<div class="footer">SEO Auditor · {{ today }}</div>
+</main>
+</div>
+</body>
+</html>
